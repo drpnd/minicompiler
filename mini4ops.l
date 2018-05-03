@@ -13,6 +13,7 @@ yywrap(void)
 "-"     return TOK_SUB;
 "*"     return TOK_MUL;
 "/"     return TOK_DIV;
+[\t ]   ;                       /* ignore */
 "\n"    return TOK_NEWLINE;
 [1-9][0-9]* {
     int val;
