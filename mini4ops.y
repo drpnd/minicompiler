@@ -46,7 +46,7 @@ int
 yyerror(char const *str)
 {
     extern char *yytext;
-    fprintf(stderr, "parser error near %s\n", yytext);
+    fprintf(stderr, "Parser error near %s\n", yytext);
     return 0;
 }
 
@@ -56,8 +56,8 @@ int main(void)
     extern FILE *yyin;
 
     yyin = stdin;
-    if (yyparse()) {
-        fprintf(stderr, "Error ! Error ! Error !\n");
+    if ( yyparse() ) {
+        fprintf(stderr, "Error!\n");
         exit(1);
     }
 }
