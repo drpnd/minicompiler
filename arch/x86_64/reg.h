@@ -20,6 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 #ifndef _X86_64_REG_H
 #define _X86_64_REG_H
 
@@ -121,6 +122,15 @@ typedef enum {
     REG_FLAGS,
     REG_EFLAGS,
     REG_RFLAGS,
+    /* ST (x87 registers) */
+    REG_ST0,
+    REG_ST1,
+    REG_ST2,
+    REG_ST3,
+    REG_ST4,
+    REG_ST5,
+    REG_ST6,
+    REG_ST7,
     /* MM */
     REG_MM0,
     REG_MM1,
@@ -158,6 +168,14 @@ typedef enum {
     REG_ZMM6,
     REG_ZMM7,
 } x86_64_reg_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _X86_64_REG_H */
 
