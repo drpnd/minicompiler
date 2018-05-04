@@ -15,7 +15,8 @@ y.tab.h: mini4ops.y
 	$(YACC) -d $^
 lex.yy.c: mini4ops.l y.tab.h
 	$(LEX) $^
+syntax.o: syntax.c syntax.h
 
-mini4ops: y.tab.c lex.yy.c syntax.h
+mini4ops: y.tab.o lex.yy.o syntax.o
 	$(CC) -o $@ $^
 
