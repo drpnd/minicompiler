@@ -487,16 +487,6 @@ mov(code_t *code, x86_64_operand_t op1, x86_64_operand_t op2)
 }
 
 int
-movq(code_t *code, x86_64_operand_t op1, x86_64_operand_t op2)
-{
-    if ( op1.type ) {
-
-    }
-    return 0;
-}
-
-
-int
 main(void)
 {
     code_t code;
