@@ -542,6 +542,28 @@ mov(code_t *code, x86_64_operand_t op1, x86_64_operand_t op2)
     return 0;
 }
 
+#define OP_REG(v, r)                                 \
+    do {                                             \
+        (v).type = X86_64_OPERAND_REG;               \
+        (v).u.reg = (r);                             \
+    } while ( 0 )
+
+#define OP_MEM(v, s, i, b, d)                        \
+    do {                                             \
+        (v).type = X86_64_OPERAND_MEM;               \
+        (v).u.mem.scale = (s);                       \
+        (v).u.mem.index = (i);                       \
+        (v).u.mem.base = (b);                        \
+        (v).u.mem.disp = (d);                        \
+    } while ( 0 )
+
+#define OP_IMM(v, i)                                 \
+    do {                                             \
+        (v).type = X86_64_OPERAND_IMM;               \
+        (v).u.imm = (i);                             \
+    } while ( 0 )
+
+
 int
 main(void)
 {
@@ -555,46 +577,24 @@ main(void)
 
     pushq(&code);
 
-    op1.type = X86_64_OPERAND_REG;
-    op1.u.reg = REG_RBP;
-    op2.type = X86_64_OPERAND_REG;
-    op2.u.reg = REG_RSP;
+    OP_REG(op1, REG_RBP);
+    OP_REG(op2, REG_RSP);
     mov(&code, op1, op2);
 
-    op1.type = X86_64_OPERAND_MEM;
-    op1.u.mem.scale = 1;
-    op1.u.mem.index = REG_RBP;
-    op1.u.mem.base = REG_INVAL;
-    op1.u.mem.disp = -4;
-    op2.type = X86_64_OPERAND_IMM;
-    op2.u.imm = 0;
+    OP_MEM(op1, 1, REG_RBP, REG_INVAL, -4);
+    OP_IMM(op2, 0);
     mov(&code, op1, op2);
 
-    op1.type = X86_64_OPERAND_MEM;
-    op1.u.mem.scale = 1;
-    op1.u.mem.index = REG_RBP;
-    op1.u.mem.base = REG_INVAL;
-    op1.u.mem.disp = -8;
-    op2.type = X86_64_OPERAND_REG;
-    op2.u.reg = REG_EDI;
+    OP_MEM(op1, 1, REG_RBP, REG_INVAL, -8);
+    OP_REG(op2, REG_EDI);
     mov(&code, op1, op2);
 
-    op1.type = X86_64_OPERAND_MEM;
-    op1.u.mem.scale = 1;
-    op1.u.mem.index = REG_RBP;
-    op1.u.mem.base = REG_INVAL;
-    op1.u.mem.disp = -0x10;
-    op2.type = X86_64_OPERAND_REG;
-    op2.u.reg = REG_RSI;
+    OP_MEM(op1, 1, REG_RBP, REG_INVAL, -0x10);
+    OP_REG(op2, REG_RSI);
     mov(&code, op1, op2);
 
-    op1.type = X86_64_OPERAND_REG;
-    op1.u.reg = REG_EAX;
-    op2.type = X86_64_OPERAND_MEM;
-    op2.u.mem.scale = 1;
-    op2.u.mem.index = REG_RBP;
-    op2.u.mem.base = REG_INVAL;
-    op2.u.mem.disp = -8;
+    OP_REG(op1, REG_EAX);
+    OP_MEM(op2, 1, REG_RBP, REG_INVAL, -8);
     mov(&code, op1, op2);
 
     popq(&code);
