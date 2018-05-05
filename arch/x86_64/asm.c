@@ -307,6 +307,34 @@ _open(x86_64_operand_t op1, x86_64_operand_t op2, int *opsize,
             return -1;
         }
         *opsize = sz2;
+
+        /* Get register values */
+        if ( _reg_value(op1.u.mem.index, &reg1, &rex1) < 0 ) {
+            return -1;
+        }
+        if ( _reg_value(op2.u.reg, &reg2, &rex2) < 0 ) {
+            return -1;
+        }
+        if ( REG_INVAL != op1.u.mem.base ) {
+            /* SIB */
+            fprintf(stderr, "FIXME!\n");
+            exit(1);
+        } else {
+            /* ModR/M and displacement */
+            if ( op1.u.mem.disp >= -128 && op1.u.mem.disp <= 127 ) {
+                enc->data[enc->len++] = MODRM(1, reg2, reg1);
+                enc->data[enc->len++] = op1.u.mem.disp;
+            } else {
+                enc->data[enc->len++] = MODRM(2, reg2, reg1);
+                (void)memcpy(enc->data + enc->len, &op1.u.mem.disp, 4);
+                enc->len += 4;
+            }
+            if ( rex1 ) {
+                *rex = REX(1, rex2, rex1, 0);
+            } else {
+                *rex = 0;
+            }
+        }
     } else if ( X86_64_OPERAND_REG == op1.type
                 && X86_64_OPERAND_MEM == op2.type ) {
         /* RM */
@@ -318,6 +346,34 @@ _open(x86_64_operand_t op1, x86_64_operand_t op2, int *opsize,
             return -1;
         }
         *opsize = sz1;
+
+        /* Get register values */
+        if ( _reg_value(op1.u.reg, &reg1, &rex1) < 0 ) {
+            return -1;
+        }
+        if ( _reg_value(op2.u.mem.index, &reg2, &rex2) < 0 ) {
+            return -1;
+        }
+        if ( REG_INVAL != op2.u.mem.base ) {
+            /* SIB */
+            fprintf(stderr, "FIXME!\n");
+            exit(1);
+        } else {
+            /* ModR/M and displacement */
+            if ( op2.u.mem.disp >= -128 && op2.u.mem.disp <= 127 ) {
+                enc->data[enc->len++] = MODRM(1, reg1, reg2);
+                enc->data[enc->len++] = op2.u.mem.disp;
+            } else {
+                enc->data[enc->len++] = MODRM(2, reg1, reg2);
+                (void)memcpy(enc->data + enc->len, &op2.u.mem.disp, 4);
+                enc->len += 4;
+            }
+            if ( rex1 ) {
+                *rex = REX(1, rex1, rex2, 0);
+            } else {
+                *rex = 0;
+            }
+        }
     } else if ( X86_64_OPERAND_MEM == op1.type
                 && X86_64_OPERAND_IMM == op2.type ) {
         /* MI */
@@ -512,6 +568,33 @@ main(void)
     op1.u.mem.disp = -4;
     op2.type = X86_64_OPERAND_IMM;
     op2.u.imm = 0;
+    mov(&code, op1, op2);
+
+    op1.type = X86_64_OPERAND_MEM;
+    op1.u.mem.scale = 1;
+    op1.u.mem.index = REG_RBP;
+    op1.u.mem.base = REG_INVAL;
+    op1.u.mem.disp = -8;
+    op2.type = X86_64_OPERAND_REG;
+    op2.u.reg = REG_EDI;
+    mov(&code, op1, op2);
+
+    op1.type = X86_64_OPERAND_MEM;
+    op1.u.mem.scale = 1;
+    op1.u.mem.index = REG_RBP;
+    op1.u.mem.base = REG_INVAL;
+    op1.u.mem.disp = -0x10;
+    op2.type = X86_64_OPERAND_REG;
+    op2.u.reg = REG_RSI;
+    mov(&code, op1, op2);
+
+    op1.type = X86_64_OPERAND_REG;
+    op1.u.reg = REG_EAX;
+    op2.type = X86_64_OPERAND_MEM;
+    op2.u.mem.scale = 1;
+    op2.u.mem.index = REG_RBP;
+    op2.u.mem.base = REG_INVAL;
+    op2.u.mem.disp = -8;
     mov(&code, op1, op2);
 
     popq(&code);
