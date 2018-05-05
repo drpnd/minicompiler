@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "reg.h"
+#include "reg_private.h"
 
 typedef struct {
     char *name;
@@ -82,7 +83,9 @@ typedef struct {
 } encoded_operand_t;
 
 
-
+/*
+ * try to append the bytes to the code
+ */
 static int
 try_append(code_t *code, uint8_t *arr, size_t sz)
 {
@@ -125,138 +128,13 @@ try_append(code_t *code, uint8_t *arr, size_t sz)
 #define MODRM(m, r, rm) (((m) << 6) | ((r) << 3) | (rm))
 #define SIB(s, i, b)    (((s) << 6) | ((i) << 3) | (b))
 
-/*
- * Register to the value used for ModR/M
- */
-static int
-_reg_value(x86_64_reg_t reg, int *idxp, int *rexp)
-{
-    int idx;
-    int rex;
-
-    rex = 0;
-    switch ( reg ) {
-    case REG_R8L:
-    case REG_R8W:
-    case REG_R8D:
-    case REG_R8:
-        rex = 1;
-    case REG_AL:
-    case REG_AX:
-    case REG_EAX:
-    case REG_RAX:
-    case REG_MM0:
-    case REG_XMM0:
-        idx = 0;
-        break;
-    case REG_R9L:
-    case REG_R9W:
-    case REG_R9D:
-    case REG_R9:
-        rex = 1;
-    case REG_CL:
-    case REG_CX:
-    case REG_ECX:
-    case REG_RCX:
-    case REG_MM1:
-    case REG_XMM1:
-        idx = 1;
-        break;
-    case REG_R10L:
-    case REG_R10W:
-    case REG_R10D:
-    case REG_R10:
-        rex = 1;
-    case REG_DL:
-    case REG_DX:
-    case REG_EDX:
-    case REG_RDX:
-    case REG_MM2:
-    case REG_XMM2:
-        idx = 2;
-        break;
-    case REG_R11L:
-    case REG_R11W:
-    case REG_R11D:
-    case REG_R11:
-        rex = 1;
-    case REG_BL:
-    case REG_BX:
-    case REG_EBX:
-    case REG_RBX:
-    case REG_MM3:
-    case REG_XMM3:
-        idx = 3;
-        break;
-    case REG_R12L:
-    case REG_R12W:
-    case REG_R12D:
-    case REG_R12:
-        rex = 1;
-    case REG_AH:
-    case REG_SP:
-    case REG_ESP:
-    case REG_RSP:
-    case REG_MM4:
-    case REG_XMM4:
-        idx = 4;
-        break;
-    case REG_R13L:
-    case REG_R13W:
-    case REG_R13D:
-    case REG_R13:
-        rex = 1;
-    case REG_CH:
-    case REG_BP:
-    case REG_EBP:
-    case REG_RBP:
-    case REG_MM5:
-    case REG_XMM5:
-        idx = 5;
-        break;
-    case REG_R14L:
-    case REG_R14W:
-    case REG_R14D:
-    case REG_R14:
-        rex = 1;
-    case REG_DH:
-    case REG_SI:
-    case REG_ESI:
-    case REG_RSI:
-    case REG_MM6:
-    case REG_XMM6:
-        idx = 6;
-        break;
-    case REG_R15L:
-    case REG_R15W:
-    case REG_R15D:
-    case REG_R15:
-        rex = 1;
-    case REG_BH:
-    case REG_DI:
-    case REG_EDI:
-    case REG_RDI:
-    case REG_MM7:
-    case REG_XMM7:
-        idx = 6;
-        break;
-    default:
-        return -1;
-    }
-
-    *idxp = idx;
-    *rexp = rex;
-
-    return 0;
-}
-
 
 /*
- * Resolve the operand encoding type
+ * Resolve the operand encoding type and encode the operand
  */
 static open_t
-_open(x86_64_operand_t op1, x86_64_operand_t op2, int *opsize,
-      encoded_operand_t *enc, int *rex)
+_encode(x86_64_operand_t op1, x86_64_operand_t op2, int *opsize,
+        encoded_operand_t *enc, int *rex)
 {
     open_t open;
     int sz1;
@@ -511,7 +389,7 @@ mov(code_t *code, x86_64_operand_t op1, x86_64_operand_t op2)
     enc.len = 0;
     opsize = 0;
 
-    open = _open(op1, op2, &opsize, &enc, &rex);
+    open = _encode(op1, op2, &opsize, &enc, &rex);
     switch ( open ) {
     case OPEN_MR:
         op = 0x89;
