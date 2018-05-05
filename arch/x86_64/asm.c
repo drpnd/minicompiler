@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <string.h>
 #include "reg.h"
 
 typedef struct {
@@ -41,9 +42,49 @@ typedef struct {
     void *symbols;
 } code_t;
 
+typedef struct {
+    int scale;
+    x86_64_reg_t index;
+    x86_64_reg_t base;
+    int disp;
+} x86_64_mem_t;
+/*
+ * Operand type
+ */
+typedef enum {
+    X86_64_OPERAND_REG,
+    X86_64_OPERAND_MEM,
+    X86_64_OPERAND_IMM,
+} x86_64_operand_type_t;
+
+/*
+ * Operand
+ */
+typedef struct {
+    x86_64_operand_type_t type;
+    union {
+        x86_64_reg_t reg;
+        x86_64_mem_t mem;
+        int imm;
+    } u;
+} x86_64_operand_t;
+
+typedef enum {
+    OPEN_MR,
+    OPEN_RM,
+    OPEN_MI,
+} open_t;
+
+typedef struct {
+    open_t type;
+    int len;
+    uint8_t data[32];
+} encoded_operand_t;
+
+
 
 static int
-try_append(code_t *code, int *arr, size_t sz)
+try_append(code_t *code, uint8_t *arr, size_t sz)
 {
     ssize_t i;
 
@@ -60,12 +101,18 @@ try_append(code_t *code, int *arr, size_t sz)
 
 #define D(...)  (int[]){__VA_ARGS__}, NARGS(__VA_ARGS__)
 #define NARGS(...) ((int)(sizeof((int[]){ __VA_ARGS__ })/sizeof(int)))
-#define TRY_APPEND(code, ...)                           \
-    do {                                                \
-        if ( try_append((code), (int[]){__VA_ARGS__},   \
-                        NARGS(__VA_ARGS__)) < 0 ) {     \
-            return -1;                                  \
-        }                                               \
+#define TRY_APPEND(code, ...)                               \
+    do {                                                    \
+        if ( try_append((code), (uint8_t[]){__VA_ARGS__},   \
+                        NARGS(__VA_ARGS__)) < 0 ) {         \
+            return -1;                                      \
+        }                                                   \
+    } while ( 0 )
+#define TRY_APPEND_ARRAY(code, data, n)                         \
+    do {                                                        \
+        if ( try_append((code), (uint8_t *)(data), (n)) < 0 ) { \
+            return -1;                                          \
+        }                                                       \
     } while ( 0 )
 
 #define REX_EN          (1 << 6)
@@ -204,29 +251,112 @@ _reg_value(x86_64_reg_t reg, int *idxp, int *rexp)
 }
 
 
-static int
-_encode_rr(x86_64_reg_t rm, x86_64_reg_t r, int *rex, int *modrm)
+/*
+ * Resolve the operand encoding type
+ */
+static open_t
+_open(x86_64_operand_t op1, x86_64_operand_t op2, int *opsize,
+      encoded_operand_t *enc, int *rex)
 {
+    open_t open;
+    int sz1;
+    int sz2;
     int reg1;
     int reg2;
     int rex1;
     int rex2;
 
-    if ( _reg_value(rm, &reg1, &rex1) < 0 ) {
-        return -1;
-    }
-    if ( _reg_value(r, &reg2, &rex2) < 0 ) {
-        return -1;
-    }
+    enc->len = 0;
+    if ( X86_64_OPERAND_REG == op1.type && X86_64_OPERAND_REG == op2.type ) {
+        /* MR */
+        open = OPEN_MR;
 
-    *modrm = MODRM(3, reg2, reg1);
-    if ( rex1 || rex2 ) {
-        *rex = REX(1, rex2, 0, rex1);
+        sz1 = x86_64_reg_size(op1.u.reg);
+        sz2 = x86_64_reg_size(op2.u.reg);
+        if ( sz1 != sz2 ) {
+            return -1;
+        }
+        /* Check the operand size */
+        if ( *opsize > 0 && *opsize != sz1 ) {
+            return -1;
+        }
+        *opsize = sz1;
+
+        /* Get register values */
+        if ( _reg_value(op1.u.reg, &reg1, &rex1) < 0 ) {
+            return -1;
+        }
+        if ( _reg_value(op2.u.reg, &reg2, &rex2) < 0 ) {
+            return -1;
+        }
+        enc->data[enc->len++] = MODRM(3, reg2, reg1);
+        if ( rex1 || rex2 ) {
+            *rex = REX(1, rex2, 0, rex1);
+        } else {
+            *rex = 0;
+        }
+
+    } else if ( X86_64_OPERAND_MEM == op1.type
+                && X86_64_OPERAND_REG == op2.type ) {
+        /* MR */
+        open = OPEN_MR;
+
+        /* Determine the operand size */
+        sz2 = x86_64_reg_size(op2.u.reg);
+        if ( *opsize > 0 && *opsize != sz2 ) {
+            return -1;
+        }
+        *opsize = sz2;
+    } else if ( X86_64_OPERAND_REG == op1.type
+                && X86_64_OPERAND_MEM == op2.type ) {
+        /* RM */
+        open = OPEN_RM;
+
+        /* Determine the operand size */
+        sz1 = x86_64_reg_size(op1.u.reg);
+        if ( *opsize > 0 && *opsize != sz1 ) {
+            return -1;
+        }
+        *opsize = sz1;
+    } else if ( X86_64_OPERAND_MEM == op1.type
+                && X86_64_OPERAND_IMM == op2.type ) {
+        /* MI */
+        open = OPEN_MI;
+
+        /* Get register values */
+        if ( _reg_value(op1.u.mem.index, &reg1, &rex1) < 0 ) {
+            return -1;
+        }
+        if ( REG_INVAL != op1.u.mem.base ) {
+            /* SIB */
+            fprintf(stderr, "FIXME!\n");
+            exit(1);
+        } else {
+            /* ModR/M and displacement */
+            if ( op1.u.mem.disp >= -128 && op1.u.mem.disp <= 127 ) {
+                enc->data[enc->len++] = MODRM(1, 0, reg1);
+                enc->data[enc->len++] = op1.u.mem.disp;
+            } else {
+                enc->data[enc->len++] = MODRM(2, 0, reg1);
+                (void)memcpy(enc->data + enc->len, &op1.u.mem.disp, 4);
+                enc->len += 4;
+            }
+            /* Immendiate */
+            (void)memcpy(enc->data + enc->len, &op2.u.imm, 4);
+            enc->len += 4;
+            if ( rex1 ) {
+                *rex = REX(1, 0, rex1, 0);
+            } else {
+                *rex = 0;
+            }
+        }
     } else {
-        *rex = 0;
+        /* FIXME */
+        fprintf(stderr, "FIXME!\n");
+        exit(1);
     }
 
-    return 0;
+    return open;
 }
 
 
@@ -313,23 +443,55 @@ retq(code_t *code)
  *      MI      ModRM:r/m(w)    imm8/16/32/64   NA              NA
  */
 int
-mov(code_t *code)
+mov(code_t *code, x86_64_operand_t op1, x86_64_operand_t op2)
 {
     int rex;
     int op;
-    int modrm;
+    open_t open;
+    encoded_operand_t enc;
+    int opsize;
 
-    _encode_rr(REG_RBP, REG_RSP, &rex, &modrm);
+    /* Initialize */
+    enc.len = 0;
+    opsize = 0;
 
-    op = 0x89;
-    if ( rex ) {
-        TRY_APPEND(code, rex, op, modrm);
-    } else {
-        TRY_APPEND(code, op, modrm);
+    open = _open(op1, op2, &opsize, &enc, &rex);
+    switch ( open ) {
+    case OPEN_MR:
+        op = 0x89;
+        if ( 8 == opsize ) {
+            rex |= REX(1, 0, 0, 0);
+        }
+        break;
+    case OPEN_RM:
+        op = 0x8b;
+        break;
+    case OPEN_MI:
+        op = 0xc7;
+        break;
+    default:
+        /* FIXME */
+        fprintf(stderr, "FIXME: MOV!\n");
+        exit(1);
     }
-    //rm = 0xe5;
-    //TRY_APPEND(code, rex, op, rm);
 
+    if ( rex ) {
+        TRY_APPEND(code, rex, op);
+        TRY_APPEND_ARRAY(code, enc.data, enc.len);
+    } else {
+        TRY_APPEND(code, op);
+        TRY_APPEND_ARRAY(code, enc.data, enc.len);
+    }
+
+    return 0;
+}
+
+int
+movq(code_t *code, x86_64_operand_t op1, x86_64_operand_t op2)
+{
+    if ( op1.type ) {
+
+    }
     return 0;
 }
 
@@ -338,13 +500,32 @@ int
 main(void)
 {
     code_t code;
+    x86_64_operand_t op1;
+    x86_64_operand_t op2;
 
     code.text.bin = malloc(sizeof(1024));
     code.text.len = 0;
     code.text.size = 1024;
 
+    pushq(&code);
+
+    op1.type = X86_64_OPERAND_REG;
+    op1.u.reg = REG_RBP;
+    op2.type = X86_64_OPERAND_REG;
+    op2.u.reg = REG_RSP;
+    mov(&code, op1, op2);
+
+    op1.type = X86_64_OPERAND_MEM;
+    op1.u.mem.scale = 1;
+    op1.u.mem.index = REG_RBP;
+    op1.u.mem.base = REG_INVAL;
+    op1.u.mem.disp = -4;
+    op2.type = X86_64_OPERAND_IMM;
+    op2.u.imm = 0;
+    mov(&code, op1, op2);
+
+    popq(&code);
     retq(&code);
-    mov(&code);
 
     return 0;
 }

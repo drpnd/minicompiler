@@ -25,6 +25,7 @@
 #define _X86_64_REG_H
 
 typedef enum {
+    REG_INVAL = -1,
     /* IP */
     REG_EIP,
     REG_RIP,
@@ -172,6 +173,8 @@ typedef enum {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    int x86_64_reg_size(x86_64_reg_t);
 
 #ifdef __cplusplus
 }
