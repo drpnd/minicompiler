@@ -102,7 +102,6 @@ try_append(code_t *code, uint8_t *arr, size_t sz)
     return 0;
 }
 
-#define D(...)  (int[]){__VA_ARGS__}, NARGS(__VA_ARGS__)
 #define NARGS(...) ((int)(sizeof((int[]){ __VA_ARGS__ })/sizeof(int)))
 #define TRY_APPEND(code, ...)                               \
     do {                                                    \
@@ -127,6 +126,36 @@ try_append(code_t *code, uint8_t *arr, size_t sz)
 
 #define MODRM(m, r, rm) (((m) << 6) | ((r) << 3) | (rm))
 #define SIB(s, i, b)    (((s) << 6) | ((i) << 3) | (b))
+
+
+/*
+ * Determine the operand size
+ */
+static int
+_determin_size(x86_64_operand_t op1, x86_64_operand_t op2)
+{
+    int sz1;
+    int sz2;
+
+    if ( X86_64_OPERAND_REG == op1.type && X86_64_OPERAND_REG == op2.type ) {
+        sz1 = x86_64_reg_size(op1.u.reg);
+        sz2 = x86_64_reg_size(op2.u.reg);
+
+        /* Check the operand size */
+        if ( sz1 != sz2 ) {
+            return -1;
+        }
+        return sz1;
+    } else if ( X86_64_OPERAND_REG == op2.type ) {
+        sz2 = x86_64_reg_size(op2.u.reg);
+        return sz2;
+    } else if ( X86_64_OPERAND_REG == op1.type ) {
+        sz1 = x86_64_reg_size(op1.u.reg);
+        return sz1;
+    } else {
+        return -1;
+    }
+}
 
 
 /*
@@ -385,9 +414,14 @@ mov(code_t *code, x86_64_operand_t op1, x86_64_operand_t op2)
     encoded_operand_t enc;
     int opsize;
 
+    /* Determine the operand size */
+    opsize = _determin_size(op1, op2);
+    if ( opsize < 0 ) {
+        return -1;
+    }
+
     /* Initialize */
     enc.len = 0;
-    opsize = 0;
 
     open = _encode(op1, op2, &opsize, &enc, &rex);
     switch ( open ) {
