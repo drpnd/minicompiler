@@ -476,6 +476,9 @@ mov(code_t *code, x86_64_operand_t op1, x86_64_operand_t op2)
     } while ( 0 )
 
 
+/*
+ * Main routine
+ */
 int
 main(void)
 {
@@ -487,29 +490,38 @@ main(void)
     code.text.len = 0;
     code.text.size = 1024;
 
+    /* popq */
     pushq(&code);
 
+    /* mov %rsp, %rbp */
     OP_REG(op1, REG_RBP);
     OP_REG(op2, REG_RSP);
     mov(&code, op1, op2);
 
+    /* mov $0, -4(%rbp) */
     OP_MEM(op1, 1, REG_RBP, REG_INVAL, -4);
     OP_IMM(op2, 0);
     mov(&code, op1, op2);
 
+    /* mov %edi, -8(%rbp) */
     OP_MEM(op1, 1, REG_RBP, REG_INVAL, -8);
     OP_REG(op2, REG_EDI);
     mov(&code, op1, op2);
 
+    /* mov %rsi -0x10(%rbp) */
     OP_MEM(op1, 1, REG_RBP, REG_INVAL, -0x10);
     OP_REG(op2, REG_RSI);
     mov(&code, op1, op2);
 
+    /* mov -8(%rbp), %eax */
     OP_REG(op1, REG_EAX);
     OP_MEM(op2, 1, REG_RBP, REG_INVAL, -8);
     mov(&code, op1, op2);
 
+    /* popq */
     popq(&code);
+
+    /* retq */
     retq(&code);
 
     return 0;
