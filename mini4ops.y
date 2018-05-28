@@ -5,42 +5,47 @@
 %}
 %union {
     int intval;
+    void *expr;
 }
 %token <intval>         LIT_INT
 %token TOK_ADD TOK_SUB TOK_MUL TOK_DIV TOK_NEWLINE
-%type <intval> expression a_expr m_expr primary
+//                      %type <intval>
+%type <expr> expression a_expr m_expr primary
 %%
 statement_list: statement
         |       statement_list statement
                 ;
 statement:      expression TOK_NEWLINE
                 {
-                    printf(">> %d\n", $1);
+                    debug($1);
                 }
                 ;
 expression:     a_expr
                 ;
 a_expr:         m_expr TOK_ADD a_expr
                 {
-                    $$ = $1 + $3;
+                    $$ = expr_op($1, $3, OP_ADD);
                 }
         |       m_expr TOK_SUB a_expr
                 {
-                    $$ = $1 - $3;
+                    $$ = expr_op($1, $3, OP_SUB);
                 }
         |       m_expr
                 ;
 m_expr:         primary TOK_MUL m_expr
                 {
-                    $$ = $1 * $3;
+                    $$ = expr_op($1, $3, OP_MUL);
                 }
         |       primary TOK_DIV m_expr
                 {
-                    $$ = $1 / $3;
+                    $$ = expr_op($1, $3, OP_DIV);
                 }
         |       primary
                 ;
 primary:        LIT_INT
+                {
+                    $$ = expr_lit(literal_int($1));
+                }
                 ;
 %%
 int

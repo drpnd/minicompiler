@@ -21,6 +21,176 @@
  * SOFTWARE.
  */
 
+#include "syntax.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/*
+ * Literal
+ */
+literal_t *
+literal_int(int i)
+{
+    literal_t *lit;
+
+    lit = malloc(sizeof(literal_t));
+    if ( NULL == lit ) {
+        return NULL;
+    }
+    lit->type = LITERAL_INT;
+    lit->u.i = i;
+
+    return lit;
+}
+
+/*
+ * Literal expression
+ */
+expr_t *
+expr_lit(literal_t *lit)
+{
+    expr_t *e;
+
+    e = malloc(sizeof(expr_t));
+    if ( NULL == e ) {
+        return NULL;
+    }
+    e->type = EXPR_LITERAL;
+    e->u.lit = lit;
+
+    return e;
+}
+
+/*
+ * Expression
+ */
+expr_t *
+expr_op(expr_t *e0, expr_t *e1, op_type_t type)
+{
+    expr_t *e;
+    op_t *op;
+
+    op = malloc(sizeof(op_t));
+    if ( NULL == op ) {
+        return NULL;
+    }
+    op->type = type;
+    op->fix = FIX_INFIX;
+    op->e0 = e0;
+    op->e1 = e1;
+
+    e = malloc(sizeof(expr_t));
+    if ( NULL == e ) {
+        free(op);
+        return NULL;
+    }
+    e->type = EXPR_OP;
+    e->u.op = op;
+
+    return e;
+}
+
+
+/* Evaluator for testing */
+typedef enum {
+    VAL_INT,
+} val_type_t;
+typedef struct {
+    val_type_t type;
+    union {
+        int i;
+    } u;
+} val_t;
+
+
+val_t * eval_expr(expr_t *);
+
+val_t *
+eval_literal(literal_t *lit)
+{
+    val_t *v;
+
+    v = malloc(sizeof(val_t));
+    if ( NULL == v ) {
+        return NULL;
+    }
+    v->type = VAL_INT;
+    v->u.i = lit->u.i;
+
+    return v;
+}
+
+val_t *
+eval_op(op_t *op)
+{
+    val_t *v0;
+    val_t *v1;
+    val_t *v;
+
+    v = malloc(sizeof(val_t));
+    if ( NULL == v ) {
+        return NULL;
+    }
+
+    switch ( op->fix ) {
+    case FIX_INFIX:
+        v0 = eval_expr(op->e0);
+        v1 = eval_expr(op->e1);
+        switch ( op->type ) {
+        case OP_ADD:
+            v->type = VAL_INT;
+            v->u.i = v0->u.i + v1->u.i;
+            break;
+        case OP_SUB:
+            v->type = VAL_INT;
+            v->u.i = v0->u.i - v1->u.i;
+            break;
+        case OP_MUL:
+            v->type = VAL_INT;
+            v->u.i = v0->u.i * v1->u.i;
+            break;
+        case OP_DIV:
+            v->type = VAL_INT;
+            v->u.i = v0->u.i / v1->u.i;
+            break;
+        }
+        break;
+    case FIX_PREFIX:
+        v0 = eval_expr(op->e0);
+        memcpy(v, v0, sizeof(val_t));
+        break;
+    }
+
+    return v;
+}
+val_t *
+eval_expr(expr_t *e)
+{
+    val_t *v;
+
+    v = NULL;
+    switch ( e->type ) {
+    case EXPR_LITERAL:
+        v = eval_literal(e->u.lit);
+        break;
+    case EXPR_OP:
+        v = eval_op(e->u.op);
+        break;
+    }
+
+    return v;
+}
+
+void
+debug(expr_t *e)
+{
+    val_t *v;
+
+    v = eval_expr(e);
+    printf(">> %d\n", v->u.i);
+}
+
 /*
  * Local variables:
  * tab-width: 4

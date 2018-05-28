@@ -23,9 +23,58 @@
 #ifndef _SYNTAX_H
 #define _SYNTAX_H
 
+typedef enum {
+    OP_ADD,
+    OP_SUB,
+    OP_MUL,
+    OP_DIV,
+} op_type_t;
+
+typedef enum {
+    FIX_INFIX,
+    FIX_PREFIX,
+} fix_t;
+
+typedef enum {
+    EXPR_LITERAL,
+    EXPR_OP,
+} expr_type_t;
+
+typedef struct _expr expr_t;
+
+typedef enum {
+    LITERAL_INT,
+} literal_type_t;
+typedef struct {
+    literal_type_t type;
+    union {
+        int i;
+    } u;
+} literal_t;
+
+typedef struct {
+    op_type_t type;
+    fix_t fix;
+    expr_t *e0;
+    expr_t *e1;
+} op_t;
+
+struct _expr {
+    expr_type_t type;
+    union {
+        literal_t *lit;
+        op_t *op;
+    } u;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    literal_t * literal_int(int);
+    expr_t * expr_lit(literal_t *);
+    expr_t * expr_op(expr_t *, expr_t *, op_type_t);
+    void debug(expr_t *e);
 
 #ifdef __cplusplus
 }
