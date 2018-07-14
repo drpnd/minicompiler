@@ -37,6 +37,7 @@ typedef enum {
 
 typedef enum {
     EXPR_LITERAL,
+    EXPR_ID,
     EXPR_OP,
 } expr_type_t;
 
@@ -63,9 +64,15 @@ struct _expr {
     expr_type_t type;
     union {
         literal_t *lit;
+        char *id;
         op_t *op;
     } u;
 };
+
+#define COMPILER_ERROR(err)    do {                             \
+        fprintf(stderr, "Fatal error on compiling the code\n"); \
+        exit(err);                                              \
+    } while ( 0 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,6 +80,7 @@ extern "C" {
 
     literal_t * literal_int(int);
     expr_t * expr_lit(literal_t *);
+    expr_t * expr_id(char *);
     expr_t * expr_op(expr_t *, expr_t *, op_type_t);
     void debug(expr_t *e);
 

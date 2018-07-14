@@ -36,7 +36,7 @@ literal_int(int i)
 
     lit = malloc(sizeof(literal_t));
     if ( NULL == lit ) {
-        return NULL;
+        COMPILER_ERROR(EXIT_FAILURE);
     }
     lit->type = LITERAL_INT;
     lit->u.i = i;
@@ -54,10 +54,31 @@ expr_lit(literal_t *lit)
 
     e = malloc(sizeof(expr_t));
     if ( NULL == e ) {
-        return NULL;
+        COMPILER_ERROR(EXIT_FAILURE);
     }
     e->type = EXPR_LITERAL;
     e->u.lit = lit;
+
+    return e;
+}
+
+/*
+ * ID
+ */
+expr_t *
+expr_id(char *id)
+{
+    expr_t *e;
+
+    e = malloc(sizeof(expr_t));
+    if ( NULL == e ) {
+        COMPILER_ERROR(EXIT_FAILURE);
+    }
+    e->type = EXPR_ID;
+    e->u.id = strdup(id);
+    if ( NULL == e->u.id ) {
+        COMPILER_ERROR(EXIT_FAILURE);
+    }
 
     return e;
 }
@@ -73,7 +94,7 @@ expr_op(expr_t *e0, expr_t *e1, op_type_t type)
 
     op = malloc(sizeof(op_t));
     if ( NULL == op ) {
-        return NULL;
+        COMPILER_ERROR(EXIT_FAILURE);
     }
     op->type = type;
     op->fix = FIX_INFIX;
@@ -83,7 +104,7 @@ expr_op(expr_t *e0, expr_t *e1, op_type_t type)
     e = malloc(sizeof(expr_t));
     if ( NULL == e ) {
         free(op);
-        return NULL;
+        COMPILER_ERROR(EXIT_FAILURE);
     }
     e->type = EXPR_OP;
     e->u.op = op;
@@ -113,10 +134,25 @@ eval_literal(literal_t *lit)
 
     v = malloc(sizeof(val_t));
     if ( NULL == v ) {
-        return NULL;
+        COMPILER_ERROR(EXIT_FAILURE);
     }
     v->type = VAL_INT;
     v->u.i = lit->u.i;
+
+    return v;
+}
+
+val_t *
+eval_id(char *id)
+{
+    val_t *v;
+
+    v = malloc(sizeof(val_t));
+    if ( NULL == v ) {
+        COMPILER_ERROR(EXIT_FAILURE);
+    }
+    v->type = VAL_INT;
+    v->u.i = 0;
 
     return v;
 }
@@ -130,7 +166,7 @@ eval_op(op_t *op)
 
     v = malloc(sizeof(val_t));
     if ( NULL == v ) {
-        return NULL;
+        COMPILER_ERROR(EXIT_FAILURE);
     }
 
     switch ( op->fix ) {
@@ -174,9 +210,14 @@ eval_expr(expr_t *e)
     case EXPR_LITERAL:
         v = eval_literal(e->u.lit);
         break;
+    case EXPR_ID:
+        v = eval_id(e->u.id);
+        break;
     case EXPR_OP:
         v = eval_op(e->u.op);
         break;
+    default:
+        COMPILER_ERROR(EXIT_FAILURE);
     }
 
     return v;

@@ -20,3 +20,6 @@ syntax.o: syntax.c syntax.h
 mini4ops: y.tab.o lex.yy.o syntax.o
 	$(CC) -o $@ $^
 
+clean:
+	rm -f *.o mini4ops y.y.tab.c y.tab.h lex.yy.c
+
