@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "syntax.h"
+int yylex();
+int yyerror(char const *);
 %}
 %union {
     int intval;
@@ -34,7 +36,7 @@
 }
 %token <intval>         TOK_LIT_INT
 %token <idval>          TOK_ID
-%token TOK_ADD TOK_SUB TOK_MUL TOK_DIV TOK_NEWLINE
+%token TOK_ADD TOK_SUB TOK_MUL TOK_DIV TOK_DEF TOK_NEWLINE
 //                      %type <intval>
 %type <expr> expression a_expr m_expr primary
 %locations
@@ -50,21 +52,21 @@ statement:      expression TOK_NEWLINE
                 ;
 expression:     a_expr
                 ;
-a_expr:         m_expr TOK_ADD a_expr
+a_expr:         a_expr TOK_ADD m_expr
                 {
                     $$ = expr_op($1, $3, OP_ADD);
                 }
-        |       m_expr TOK_SUB a_expr
+        |       a_expr TOK_SUB m_expr
                 {
                     $$ = expr_op($1, $3, OP_SUB);
                 }
         |       m_expr
                 ;
-m_expr:         primary TOK_MUL m_expr
+m_expr:         m_expr TOK_MUL primary
                 {
                     $$ = expr_op($1, $3, OP_MUL);
                 }
-        |       primary TOK_DIV m_expr
+        |       m_expr TOK_DIV primary
                 {
                     $$ = expr_op($1, $3, OP_DIV);
                 }
@@ -81,6 +83,9 @@ primary:        TOK_LIT_INT
                 ;
 %%
 
+/*
+ * Print usage and exit
+ */
 void
 usage(const char *prog)
 {
@@ -88,6 +93,9 @@ usage(const char *prog)
     exit(EXIT_FAILURE);
 }
 
+/*
+ * Error handler
+ */
 int
 yyerror(char const *str)
 {
@@ -99,6 +107,9 @@ yyerror(char const *str)
     return 0;
 }
 
+/*
+ * Main routine
+ */
 int
 main(int argc, const char *const argv[])
 {

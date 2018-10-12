@@ -38,6 +38,7 @@ yywrap(void)
 "-"     return TOK_SUB;
 "*"     return TOK_MUL;
 "/"     return TOK_DIV;
+":="    return TOK_DEF;
 [\t ]   ;                       /* ignore whitespaces */
 "\n"    return TOK_NEWLINE;
 [A-Za-z\_]* {
