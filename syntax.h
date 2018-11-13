@@ -23,6 +23,9 @@
 #ifndef _SYNTAX_H
 #define _SYNTAX_H
 
+/*
+ * Operations
+ */
 typedef enum {
     OP_ADD,
     OP_SUB,
@@ -30,11 +33,17 @@ typedef enum {
     OP_DIV,
 } op_type_t;
 
+/*
+ * Type of fixes
+ */
 typedef enum {
     FIX_INFIX,
     FIX_PREFIX,
 } fix_t;
 
+/*
+ * Expression type
+ */
 typedef enum {
     EXPR_LITERAL,
     EXPR_ID,
@@ -43,6 +52,9 @@ typedef enum {
 
 typedef struct _expr expr_t;
 
+/*
+ * Literal
+ */
 typedef enum {
     LITERAL_INT,
 } literal_type_t;
@@ -53,6 +65,9 @@ typedef struct {
     } u;
 } literal_t;
 
+/*
+ * Operation
+ */
 typedef struct {
     op_type_t type;
     fix_t fix;
@@ -60,6 +75,9 @@ typedef struct {
     expr_t *e1;
 } op_t;
 
+/*
+ * Expression
+ */
 struct _expr {
     expr_type_t type;
     union {
