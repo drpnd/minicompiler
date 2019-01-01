@@ -33,11 +33,13 @@ int yyerror(char const *);
     int intval;
     char *idval;
     void *expr;
+    void *stmt;
 }
 %token <intval>         TOK_LIT_INT
 %token <idval>          TOK_ID
 %token TOK_ADD TOK_SUB TOK_MUL TOK_DIV TOK_DEF TOK_NEWLINE
 //                      %type <intval>
+%type <stmt> def_stmt
 %type <expr> expression a_expr m_expr primary
 %locations
 %%
@@ -45,9 +47,15 @@ int yyerror(char const *);
 statement_list: statement
         |       statement_list statement
                 ;
-statement:      expression TOK_NEWLINE
+statement:      def_stmt TOK_NEWLINE
+        |       expression TOK_NEWLINE
                 {
                     debug($1);
+                }
+                ;
+def_stmt:       TOK_ID TOK_DEF expression
+                {
+                    $$ = stmt_def($1, $3);
                 }
                 ;
 expression:     a_expr

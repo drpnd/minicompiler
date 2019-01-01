@@ -27,6 +27,28 @@
 #include <string.h>
 
 /*
+ * Statement
+ */
+stmt_t *
+stmt_def(char *id, expr_t *e)
+{
+    stmt_t *stmt;
+
+    stmt = malloc(sizeof(stmt_t));
+    if ( NULL == stmt ) {
+        COMPILER_ERROR(EXIT_FAILURE);
+    }
+    stmt->type = STMT_DEF;
+    stmt->u.def.id = strdup(id);
+    if ( NULL == stmt->u.def.id ) {
+        COMPILER_ERROR(EXIT_FAILURE);
+    }
+    stmt->u.def.e = e;
+
+    return stmt;
+}
+
+/*
  * Literal
  */
 literal_t *
@@ -124,6 +146,22 @@ typedef struct {
     } u;
 } val_t;
 
+/*
+ * Variable
+ */
+typedef struct {
+    char *id;
+    union {
+        expr_t *e;
+    } u;
+} var_t;
+
+/*
+ * Environment
+ */
+typedef struct {
+    var_t *locals;
+} env_t;
 
 val_t * eval_expr(expr_t *);
 

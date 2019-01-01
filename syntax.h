@@ -60,6 +60,9 @@ typedef struct {
     expr_t *e1;
 } op_t;
 
+/*
+ * Expression
+ */
 struct _expr {
     expr_type_t type;
     union {
@@ -68,6 +71,26 @@ struct _expr {
         op_t *op;
     } u;
 };
+
+typedef enum {
+    STMT_DEF,
+    STMT_EXPR,
+} stmt_type_t;
+
+typedef struct {
+    char *id;
+    expr_t *e;
+} stmt_def_t;
+
+/*
+ * Statement
+ */
+typedef struct {
+    stmt_type_t type;
+    union {
+        stmt_def_t def;
+    } u;
+} stmt_t;
 
 #define COMPILER_ERROR(err)    do {                             \
         fprintf(stderr, "Fatal error on compiling the code\n"); \
@@ -79,6 +102,7 @@ extern "C" {
 #endif
 
     literal_t * literal_int(int);
+    stmt_t * stmt_def(char *, expr_t *);
     expr_t * expr_lit(literal_t *);
     expr_t * expr_id(char *);
     expr_t * expr_op(expr_t *, expr_t *, op_type_t);
