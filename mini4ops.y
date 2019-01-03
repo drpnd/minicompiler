@@ -28,29 +28,39 @@
 #include "syntax.h"
 int yylex();
 int yyerror(char const *);
+stmt_list_t *stmts;
 %}
 %union {
     int intval;
     char *idval;
     void *expr;
     void *stmt;
+    void *stmt_list;
 }
 %token <intval>         TOK_LIT_INT
 %token <idval>          TOK_ID
 %token TOK_ADD TOK_SUB TOK_MUL TOK_DIV TOK_DEF TOK_NEWLINE
 //                      %type <intval>
-%type <stmt> def_stmt
+%type <stmt_list> statement_list
+%type <stmt> statement def_stmt
 %type <expr> expression a_expr m_expr primary
 %locations
 %%
 /* Syntax and parser */
 statement_list: statement
+                {
+                    printf("> %p %d\n", $1, ((stmt_t *)$1)->type);
+                }
         |       statement_list statement
+                {
+                    printf(">> %p\n", $1);
+                    printf(">> %p %d\n", $2, ((stmt_t *)$2)->type);
+                }
                 ;
 statement:      def_stmt TOK_NEWLINE
         |       expression TOK_NEWLINE
                 {
-                    debug($1);
+                    $$ = stmt_expr($1);
                 }
                 ;
 def_stmt:       TOK_ID TOK_DEF expression
@@ -126,18 +136,23 @@ main(int argc, const char *const argv[])
 
     if ( argc < 2 ) {
         yyin = stdin;
+        /* stdio is not supported. */
         usage(argv[0]);
     } else {
+        /* Open the specified file */
         yyin = fopen(argv[1], "r");
         if ( NULL == yyin ) {
             perror("fopen");
             exit(EXIT_FAILURE);
         }
     }
+    /* Parse the input file */
+    stmts = NULL;
     if ( yyparse() ) {
         fprintf(stderr, "Parse error!\n");
         exit(EXIT_FAILURE);
     }
+    printf("stmts=%p\n", stmts);
 }
 
 /*

@@ -49,6 +49,24 @@ stmt_def(char *id, expr_t *e)
 }
 
 /*
+ * Expression statement
+ */
+stmt_t *
+stmt_expr(expr_t *e)
+{
+    stmt_t *stmt;
+
+    stmt = malloc(sizeof(stmt_t));
+    if ( NULL == stmt ) {
+        COMPILER_ERROR(EXIT_FAILURE);
+    }
+    stmt->type = STMT_EXPR;
+    stmt->u.expr = e;
+
+    return stmt;
+}
+
+/*
  * Literal
  */
 literal_t *

@@ -104,8 +104,18 @@ typedef struct {
     stmt_type_t type;
     union {
         stmt_def_t def;
+        expr_t *expr;
     } u;
 } stmt_t;
+
+/*
+ * Statements
+ */
+typedef struct stmt_list stmt_list_t;
+struct stmt_list {
+    stmt_t stmt;
+    stmt_list_t *next;
+};
 
 #define COMPILER_ERROR(err)    do {                             \
         fprintf(stderr, "Fatal error on compiling the code\n"); \
@@ -118,6 +128,7 @@ extern "C" {
 
     literal_t * literal_int(int);
     stmt_t * stmt_def(char *, expr_t *);
+    stmt_t * stmt_expr(expr_t *);
     expr_t * expr_lit(literal_t *);
     expr_t * expr_id(char *);
     expr_t * expr_op(expr_t *, expr_t *, op_type_t);
