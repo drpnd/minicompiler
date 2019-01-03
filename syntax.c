@@ -27,6 +27,34 @@
 #include <string.h>
 
 /*
+ * Statement list
+ */
+stmt_list_t *
+stmt_list_append(stmt_list_t *sl, stmt_t *stmt)
+{
+    if ( NULL == sl ) {
+        sl = malloc(sizeof(stmt_list_t));
+        if ( NULL == sl ) {
+            COMPILER_ERROR(EXIT_FAILURE);
+        }
+        sl->head = NULL;
+        sl->tail = NULL;
+    }
+
+    stmt->next = NULL;
+
+    if ( NULL == sl->tail ) {
+        sl->head = stmt;
+        sl->tail = stmt;
+    } else {
+        sl->tail->next = stmt;
+        sl->tail = stmt;
+    }
+
+    return sl;
+}
+
+/*
  * Statement
  */
 stmt_t *
@@ -44,6 +72,7 @@ stmt_def(char *id, expr_t *e)
         COMPILER_ERROR(EXIT_FAILURE);
     }
     stmt->u.def.e = e;
+    stmt->next = NULL;
 
     return stmt;
 }
@@ -62,6 +91,7 @@ stmt_expr(expr_t *e)
     }
     stmt->type = STMT_EXPR;
     stmt->u.expr = e;
+    stmt->next = NULL;
 
     return stmt;
 }

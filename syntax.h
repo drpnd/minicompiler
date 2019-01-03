@@ -100,21 +100,23 @@ typedef struct {
 /*
  * Statement
  */
-typedef struct {
+typedef struct stmt stmt_t;
+struct stmt {
     stmt_type_t type;
     union {
         stmt_def_t def;
         expr_t *expr;
     } u;
-} stmt_t;
+    stmt_t *next;
+};
 
 /*
  * Statements
  */
 typedef struct stmt_list stmt_list_t;
 struct stmt_list {
-    stmt_t stmt;
-    stmt_list_t *next;
+    stmt_t *head;
+    stmt_t *tail;
 };
 
 #define COMPILER_ERROR(err)    do {                             \
@@ -126,6 +128,7 @@ struct stmt_list {
 extern "C" {
 #endif
 
+    stmt_list_t * stmt_list_append(stmt_list_t *, stmt_t *);
     literal_t * literal_int(int);
     stmt_t * stmt_def(char *, expr_t *);
     stmt_t * stmt_expr(expr_t *);

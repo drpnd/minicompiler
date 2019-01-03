@@ -47,14 +47,18 @@ stmt_list_t *stmts;
 %locations
 %%
 /* Syntax and parser */
+file:           statement_list
+                {
+                    stmts = $1;
+                }
+                ;
 statement_list: statement
                 {
-                    printf("> %p %d\n", $1, ((stmt_t *)$1)->type);
+                    $$ = stmt_list_append(NULL, $1);
                 }
         |       statement_list statement
                 {
-                    printf(">> %p\n", $1);
-                    printf(">> %p %d\n", $2, ((stmt_t *)$2)->type);
+                    $$ = stmt_list_append($1, $2);
                 }
                 ;
 statement:      def_stmt TOK_NEWLINE
