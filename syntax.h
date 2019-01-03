@@ -135,7 +135,7 @@ extern "C" {
     expr_t * expr_lit(literal_t *);
     expr_t * expr_id(char *);
     expr_t * expr_op(expr_t *, expr_t *, op_type_t);
-    void debug(expr_t *e);
+    void debug(stmt_list_t *);
 
 #ifdef __cplusplus
 }

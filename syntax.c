@@ -310,12 +310,23 @@ eval_expr(expr_t *e)
 }
 
 void
-debug(expr_t *e)
+debug(stmt_list_t *sl)
 {
+    stmt_t *stmt;
     val_t *v;
 
-    v = eval_expr(e);
-    printf(">> %d\n", v->u.i);
+    if ( NULL == sl ) {
+        return;
+    }
+    stmt = sl->head;
+
+    while ( NULL != stmt ) {
+        if ( STMT_EXPR == stmt->type ) {
+            v = eval_expr(stmt->u.expr);
+            printf(">> %d\n", v->u.i);
+        }
+        stmt = stmt->next;
+    }
 }
 
 /*

@@ -157,6 +157,7 @@ main(int argc, const char *const argv[])
         exit(EXIT_FAILURE);
     }
     printf("stmts=%p\n", stmts);
+    debug(stmts);
 }
 
 /*
