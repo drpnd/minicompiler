@@ -23,6 +23,8 @@
 #ifndef _SYNTAX_H
 #define _SYNTAX_H
 
+#define MAX_VARS    256
+
 /*
  * Operations
  */

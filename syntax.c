@@ -199,22 +199,54 @@ typedef struct {
  */
 typedef struct {
     char *id;
-    union {
-        expr_t *e;
-    } u;
+    val_t val;
 } var_t;
 
 /*
- * Environment
+ * Context
  */
 typedef struct {
-    var_t *locals;
-} env_t;
+    int nvars;
+    var_t vars[MAX_VARS];
+} ctx_t;
 
-val_t * eval_expr(expr_t *);
+val_t * eval_expr(ctx_t *, expr_t *);
+
+static var_t *
+_find_var(ctx_t *ctx, char *id)
+{
+    int i;
+    for ( i = 0; i < ctx->nvars; i++ ) {
+        if ( 0 == strcmp(ctx->vars[i].id, id) ) {
+            return &ctx->vars[i];
+        }
+    }
+
+    return NULL;
+}
+
+static void
+_update_var(ctx_t *ctx, char *id, val_t *val)
+{
+    var_t *var;
+
+    var = _find_var(ctx, id);
+    if ( NULL == var ) {
+        if ( ctx->nvars >= MAX_VARS ) {
+            COMPILER_ERROR(EXIT_FAILURE);
+        }
+        var = &ctx->vars[ctx->nvars];
+        var->id = strdup(id);
+        if ( NULL == var->id ) {
+            COMPILER_ERROR(EXIT_FAILURE);
+        }
+        ctx->nvars++;
+    }
+    memcpy(&var->val, val, sizeof(val_t));
+}
 
 val_t *
-eval_literal(literal_t *lit)
+eval_literal(ctx_t *ctx, literal_t *lit)
 {
     val_t *v;
 
@@ -229,22 +261,29 @@ eval_literal(literal_t *lit)
 }
 
 val_t *
-eval_id(char *id)
+eval_id(ctx_t *ctx, char *id)
 {
     val_t *v;
+    var_t *var;
+
+    var = _find_var(ctx, id);
+    if ( NULL == var ) {
+        COMPILER_ERROR(EXIT_FAILURE);
+    }
 
     v = malloc(sizeof(val_t));
     if ( NULL == v ) {
         COMPILER_ERROR(EXIT_FAILURE);
     }
-    v->type = VAL_INT;
-    v->u.i = 0;
+    memcpy(v, &var->val, sizeof(val_t));
+    //v->type = VAL_INT;
+    //v->u.i = 0;
 
     return v;
 }
 
 val_t *
-eval_op(op_t *op)
+eval_op(ctx_t *ctx, op_t *op)
 {
     val_t *v0;
     val_t *v1;
@@ -257,8 +296,8 @@ eval_op(op_t *op)
 
     switch ( op->fix ) {
     case FIX_INFIX:
-        v0 = eval_expr(op->e0);
-        v1 = eval_expr(op->e1);
+        v0 = eval_expr(ctx, op->e0);
+        v1 = eval_expr(ctx, op->e1);
         switch ( op->type ) {
         case OP_ADD:
             v->type = VAL_INT;
@@ -279,7 +318,7 @@ eval_op(op_t *op)
         }
         break;
     case FIX_PREFIX:
-        v0 = eval_expr(op->e0);
+        v0 = eval_expr(ctx, op->e0);
         memcpy(v, v0, sizeof(val_t));
         break;
     }
@@ -287,20 +326,20 @@ eval_op(op_t *op)
     return v;
 }
 val_t *
-eval_expr(expr_t *e)
+eval_expr(ctx_t *ctx, expr_t *e)
 {
     val_t *v;
 
     v = NULL;
     switch ( e->type ) {
     case EXPR_LITERAL:
-        v = eval_literal(e->u.lit);
+        v = eval_literal(ctx, e->u.lit);
         break;
     case EXPR_ID:
-        v = eval_id(e->u.id);
+        v = eval_id(ctx, e->u.id);
         break;
     case EXPR_OP:
-        v = eval_op(e->u.op);
+        v = eval_op(ctx, e->u.op);
         break;
     default:
         COMPILER_ERROR(EXIT_FAILURE);
@@ -310,10 +349,22 @@ eval_expr(expr_t *e)
 }
 
 void
+eval_stmt_def(ctx_t *ctx, stmt_def_t *def)
+{
+    val_t *v;
+
+    v = eval_expr(ctx, def->e);
+    _update_var(ctx, def->id, v);
+}
+
+void
 debug(stmt_list_t *sl)
 {
+    ctx_t ctx;
     stmt_t *stmt;
     val_t *v;
+
+    memset(&ctx, 0, sizeof(ctx_t));
 
     if ( NULL == sl ) {
         return;
@@ -321,9 +372,14 @@ debug(stmt_list_t *sl)
     stmt = sl->head;
 
     while ( NULL != stmt ) {
-        if ( STMT_EXPR == stmt->type ) {
-            v = eval_expr(stmt->u.expr);
+        switch ( stmt->type ) {
+        case STMT_EXPR:
+            v = eval_expr(&ctx, stmt->u.expr);
             printf(">> %d\n", v->u.i);
+            break;
+        case STMT_DEF:
+            eval_stmt_def(&ctx, &stmt->u.def);
+            break;
         }
         stmt = stmt->next;
     }
