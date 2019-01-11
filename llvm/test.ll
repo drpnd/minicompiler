@@ -27,7 +27,7 @@ define i32 @main(i32, i8**) nounwind {
 
   %10 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([18 x i8], [18 x i8]* @.str, i32 0, i32 0), i8* %prog, i32 %argc)
 
-  ret i32 %10
+  ret i32 0
 }
 
 declare i32 @printf(i8*, ...)
